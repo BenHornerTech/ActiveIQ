@@ -64,8 +64,21 @@ $END_DATE = (Get-Date).ToString("yyyy-MM-dd")
 $API_SEARCH = $ENDPOINT+"/v3/search/aggregate?cluster="+$SEARCH_CLUSTER_NAME
 $REST_SEARCH_RESPONSE = Invoke-RestMethod -Uri $API_SEARCH -Headers $HEADERS -Method GET
 
+# If multiple clusters match search string, then present options
+if ($REST_SEARCH_RESPONSE.results.count -gt 1){
+    Write-Host "Multiple clusters were found" -ForegroundColor Yellow
+    Write-Host "Please select a cluster" -ForegroundColor Yellow
+    for($i = 0; $i -lt $REST_SEARCH_RESPONSE.results.count; $i++){
+        Write-Host "$($i): $($REST_SEARCH_RESPONSE.results[$i].name)"
+    }
+    $selection = Read-Host -Prompt "Enter the number of the cluster you want to choose"
+
 # Store cluster UUID in $CLUSTER_UUID
-$CLUSTER_UUID = $REST_SEARCH_RESPONSE.results.id
+    $CLUSTER_UUID = $REST_SEARCH_RESPONSE.results.id[$selection]
+}
+    else {
+        $CLUSTER_UUID = $REST_SEARCH_RESPONSE.results.id
+    }
 
 
 ### Step 4 - Get all node details for provided cluster UUID from /v1/clusterview/resolver API and store results in $REST_RESOLVER_RESPONSE
@@ -75,10 +88,8 @@ Clear-Host
 
 ### Step 5 - Get performance data for each node within the cluster
 $TABLE = @()
-$NODE_COUNTER = 0
+
 foreach ($NODE in $REST_RESOLVER_RESPONSE.clusters.nodes ) {
-    
-    $NODE_COUNTER++
     Clear-Host
     Write-host "Found"$REST_RESOLVER_RESPONSE.clusters.nodes.Count"nodes in cluster"$REST_RESOLVER_RESPONSE.clusters.name
     Write-Host "Processing node"$NODE.name
@@ -112,18 +123,18 @@ foreach ($NODE in $REST_RESOLVER_RESPONSE.clusters.nodes ) {
     # Place all data into table
     $TABLE += (
         [pscustomobject]@{
-            Node_Name=$NODE.name;
-            Node_Model=$NODE.model;
-            Node_Serial=$NODE.serial;
-            CPU_Utilisation_Average=($RESULT_CPU.Average/100).ToString("P2");
-            Peak_Performance_Average=($RESULT_PEAK.Average/100).ToString("P2");
-            Node_Headroom=($HEADROOM);
+            Node_Name=$NODE.name
+            Node_Model=$NODE.model
+            Node_Serial=$NODE.serial
+            CPU_Utilisation_Average=($RESULT_CPU.Average/100).ToString("P2")
+            Peak_Performance_Average=($RESULT_PEAK.Average/100).ToString("P2")
+            Node_Headroom=($HEADROOM)
             Variance=($CPU_VARIANCE)}
     )
 }
 
 ### Step 6 -  Display results
-start-sleep 2
+start-sleep 1
 Clear-Host
 Write-host ""
 Write-host "Displaying results for all"$REST_RESOLVER_RESPONSE.clusters.nodes.Count"nodes in cluster"$REST_RESOLVER_RESPONSE.clusters.name
