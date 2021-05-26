@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 
-###############################################################################################
+################################################################################################
 #
 # Title:        AIQ-Node-Performance.ps1
 # Author:       Ben Horner
@@ -18,7 +18,7 @@
 # URLs:         https://mysupport.netapp.com/myautosupport/dist/index.html#/apiservices
 #               https://mysupport.netapp.com/myautosupport/dist/index.html#/apidocs/serviceList
 #
-###############################################################################################
+################################################################################################
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $ENDPOINT = "https://api.activeiq.netapp.com"
