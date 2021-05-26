@@ -36,7 +36,7 @@ if ( [string]::IsNullOrEmpty($TOKENS.refresh_token) ){
 
 
 ### Step 2 - Generate an access token
-$API = $ENDPOINT+"/v1/tokens/accessToken"
+$ACCESS_API = $ENDPOINT+"/v1/tokens/accessToken"
 $HEADERS = @{
     "accept" = "application/json"
     "Content-Type" = "application/json"
@@ -45,7 +45,7 @@ $POST_DATA = @{
     "refresh_token" = $TOKENS.refresh_token
 }
 
-$REST_RESPONSE = Invoke-RestMethod -Uri $API -Headers $HEADERS -Body ($POST_DATA|ConvertTo-Json) -Method POST
+$REST_RESPONSE = Invoke-RestMethod -Uri $ACCESS_API -Headers $HEADERS -Body ($POST_DATA|ConvertTo-Json) -Method POST
 $TOKENS.access_token = $REST_RESPONSE.access_token
 $TOKENS.refresh_token = $REST_RESPONSE.refresh_token
 
@@ -56,8 +56,9 @@ $HEADERS.Add("authorizationToken", $TOKENS.access_token)
 ### Step 3 - Get cluster name and resolve to cluster UUID
 Clear-Host
 $SEARCH_CLUSTER_NAME = Read-Host -Prompt "Enter a cluster name"
-$START_DATE = Read-Host -Prompt "Start date (YYYY-MM-DD)"
-$END_DATE = Read-Host -Prompt "End date (YYYY-MM-DD)"
+$DATE_RANGE = Read-Host -Prompt "Number of day's data for analysis (from today)"
+$START_DATE = (Get-Date).AddDays(-$DATE_RANGE).ToString("yyyy-MM-dd")
+$END_DATE = (Get-Date).ToString("yyyy-MM-dd")
 
 # Search with given criteria against /v3/search/aggregate API and store results in $REST_SEARCH_RESPONSE
 $API_SEARCH = $ENDPOINT+"/v3/search/aggregate?cluster="+$SEARCH_CLUSTER_NAME
@@ -68,55 +69,56 @@ $CLUSTER_UUID = $REST_SEARCH_RESPONSE.results.id
 
 
 ### Step 4 - Get all node details for provided cluster UUID from /v1/clusterview/resolver API and store results in $REST_RESOLVER_RESPONSE
-$API = $ENDPOINT+"/v1/clusterview/resolver/"+$CLUSTER_UUID
-$REST_RESOLVER_RESPONSE = Invoke-RestMethod -Uri $API -Headers $HEADERS -Method GET
+$RESOLVER_API = $ENDPOINT+"/v1/clusterview/resolver/"+$CLUSTER_UUID
+$REST_RESOLVER_RESPONSE = Invoke-RestMethod -Uri $RESOLVER_API -Headers $HEADERS -Method GET
 Clear-Host
 
 ### Step 5 - Get performance data for each node within the cluster
-$table = @()
-$counter = 0
-foreach ($node in $REST_RESOLVER_RESPONSE.clusters.nodes ) {
+$TABLE = @()
+$NODE_COUNTER = 0
+foreach ($NODE in $REST_RESOLVER_RESPONSE.clusters.nodes ) {
     
-    $counter++
+    $NODE_COUNTER++
     Clear-Host
     Write-host "Found"$REST_RESOLVER_RESPONSE.clusters.nodes.Count"nodes in cluster"$REST_RESOLVER_RESPONSE.clusters.name
-    Write-Host "Processing node"$node.name
+    Write-Host "Processing node"$NODE.name
 
     # Gather performance data for given node
-    $API = $ENDPOINT+"/v1/performance-data/graphs?graphName=node_headroom_cpu_utilization&serialNumber="+$node.serial+"&startDate=$START_DATE&endDate=$END_DATE"
-    $REST_RESPONSE = Invoke-RestMethod -Uri $API -Headers $HEADERS -Method GET
+    $GRAPH_API = $ENDPOINT+"/v1/performance-data/graphs?graphName=node_headroom_cpu_utilization&serialNumber="+$NODE.serial+"&startDate=$START_DATE&endDate=$END_DATE"
+    $REST_RESPONSE = Invoke-RestMethod -Uri $GRAPH_API -Headers $HEADERS -Method GET
 
     # Extract performance statistics from data returned for each node and store results
-    $result_cpu = $REST_RESPONSE.results.counterData.PSObject.Properties.Value | Measure-Object -AllStats -Property current_utilization
-    $result_peak = $REST_RESPONSE.results.counterData.PSObject.Properties.Value | Measure-Object -AllStats -Property peak_performance
+    $RESULT_CPU = $REST_RESPONSE.results.counterData.PSObject.Properties.Value | Measure-Object -AllStats -Property current_utilization
+    $RESULT_PEAK = $REST_RESPONSE.results.counterData.PSObject.Properties.Value | Measure-Object -AllStats -Property peak_performance
 
     # Set advice flags for nodes close to or over peak performance
-    $headroom = "Node has headroom available"
-    $cpu_variance = "CPU usage is steady"
-    if ($result_cpu.Average -gt ($result_peak.Average - 10))
+    $HEADROOM = "Node has headroom available  "
+    $CPU_VARIANCE = "CPU usage is steady"
+    if ($RESULT_CPU.Average -gt ($result_peak.Average - 10))
     {
-        $headroom = "** Node is over worked **"
+        $HEADROOM = "** Node is over worked  "
     }
     else {
-        if ($result_cpu.Average -lt ($result_peak.Average) -and ($result_cpu.Average -ge ($result_peak.Average - 20))) 
+        if ($RESULT_CPU.Average -lt ($RESULT_PEAK.Average) -and ($RESULT_CPU.Average -ge ($RESULT_PEAK.Average - 20))) 
         {
-            $headroom = "* Node is close to limit *"
+            $HEADROOM = "* Node is close to limit  "
         }
     }
-    if ($result_cpu.StandardDeviation -gt 4)
+    if ($RESULT_CPU.StandardDeviation -gt 4)
     {
-        $cpu_variance = "** CPU usage is highly variable **"
+        $CPU_VARIANCE = "* CPU usage is highly variable"
     }
 
     # Place all data into table
-    $table += (
+    $TABLE += (
         [pscustomobject]@{
-            Node_Name=$node.name;Node_Model=$node.model;
-            Node_Serial=$node.serial;
-            CPU_Utilisation_Average=($result_cpu.Average/100).ToString("P2");
-            Peak_Performance_Average=($result_peak.Average/100).ToString("P2");
-            Node_Headroom=($headroom);
-            Variance=($cpu_variance)}
+            Node_Name=$NODE.name;
+            Node_Model=$NODE.model;
+            Node_Serial=$NODE.serial;
+            CPU_Utilisation_Average=($RESULT_CPU.Average/100).ToString("P2");
+            Peak_Performance_Average=($RESULT_PEAK.Average/100).ToString("P2");
+            Node_Headroom=($HEADROOM);
+            Variance=($CPU_VARIANCE)}
     )
 }
 
@@ -126,5 +128,5 @@ Clear-Host
 Write-host ""
 Write-host "Displaying results for all"$REST_RESOLVER_RESPONSE.clusters.nodes.Count"nodes in cluster"$REST_RESOLVER_RESPONSE.clusters.name
 Write-host ""
-Write-output $table | Format-Table
+Write-output $TABLE | Format-Table
 Write-host ""
