@@ -105,12 +105,12 @@ foreach ($NODE in $REST_RESOLVER_RESPONSE.clusters.nodes ) {
     # Set advice flags for nodes close to or over peak performance
     $HEADROOM = "Node has headroom available  "
     $CPU_VARIANCE = "CPU usage is steady"
-    if ($RESULT_CPU.Average -gt ($result_peak.Average - 10))
+    if ($RESULT_CPU.Average -gt ($result_peak.Average - 3))
     {
         $HEADROOM = "** Node is over worked  "
     }
     else {
-        if ($RESULT_CPU.Average -lt ($RESULT_PEAK.Average) -and ($RESULT_CPU.Average -ge ($RESULT_PEAK.Average - 20))) 
+        if ($RESULT_CPU.Average -lt ($RESULT_PEAK.Average) -and ($RESULT_CPU.Average -ge ($RESULT_PEAK.Average - 10))) 
         {
             $HEADROOM = "* Node is close to limit  "
         }
