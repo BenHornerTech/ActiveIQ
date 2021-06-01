@@ -2,11 +2,11 @@
 
 ################################################################################################
 #
-# Title:        AIQ-Node-Performance.ps1
+# Title:        AIQ-Node-FC.ps1
 # Author:       Ben Horner
-# Date:         2021-05-22
+# Date:         2021-06-01
 # Description:  Get all nodes from a single cluster UUID and compare
-#		        current and peak performance CPU figures
+#		        current and peak performance CPU figures plus flag FCP traffic
 # Thanks:       Thank you to Adrian Bronder for the original API auth code
 #               github.com/AdrianBronder
 #
