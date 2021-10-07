@@ -151,6 +151,7 @@ start-sleep 1
 Clear-Host
 Write-host ""
 Write-host "Displaying results for all"$REST_RESOLVER_RESPONSE.clusters.nodes.Count"nodes in cluster"$REST_RESOLVER_RESPONSE.clusters.name
+Write-host "ONTAP version for this cluster is"$REST_RESOLVER_RESPONSE.clusters.version
 Write-host ""
 Write-output $TABLE | Format-Table
 Write-host ""

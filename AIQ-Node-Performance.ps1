@@ -130,7 +130,8 @@ foreach ($NODE in $REST_RESOLVER_RESPONSE.clusters.nodes ) {
             CPU_Utilisation_Average=($RESULT_CPU.Average/100).ToString("P2")
             Peak_Performance_Average=($RESULT_PEAK.Average/100).ToString("P2")
             Node_Headroom=($HEADROOM)
-            Variance=($CPU_VARIANCE)}
+            Variance=($CPU_VARIANCE)
+            }
     )
 }
 
@@ -139,6 +140,7 @@ start-sleep 1
 Clear-Host
 Write-host ""
 Write-host "Displaying results for all"$REST_RESOLVER_RESPONSE.clusters.nodes.Count"nodes in cluster"$REST_RESOLVER_RESPONSE.clusters.name
+Write-host "ONTAP version for this cluster is"$REST_RESOLVER_RESPONSE.clusters.version
 Write-host ""
 Write-output $TABLE | Format-Table
 Write-host ""
